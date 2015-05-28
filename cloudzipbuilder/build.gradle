@@ -1,0 +1,327 @@
+apply plugin:'base'
+
+ext {
+    cloudZipVersion = "15.4.0"	
+    majrel = '7'
+    minrel = '4' 
+    micrel = '0' 
+    pssFrameworkVersion = "7.0.4"
+    commitMessage = 'Making new release of cloudZip for version $cloudZipVersion pssFrameworkVersion ${propertiesFrameworkVersion} and ${majrel}.${minrel}.${micrel}'
+}
+
+defaultTasks 'buildCloudZip'
+
+task checkoutLatest(dependsOn: ['checkoutLatestPSSM_PCC_Shared','checkoutLatestPSSM_PCC_Account','checkoutLatestPSSM_PCC_Environment','checkoutLatestSDK_PCC_PCIS_Service','checkoutLatestSDK_PCC_PCIS_Client','checkoutLatestPCC_Cockpit','checkoutLatestPSS_BuildScripts']) {
+}
+
+task checkoutLatestPSSM_PCC_Shared(type: Exec) { 
+    description 'Clone(checkout) checkoutLatest PSSM_PCC_Shared' 
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Shared.git' , 'build/PSSM_PCC_Shared' 
+}
+
+task checkoutLatestPSSM_PCC_Account(type: Exec) {
+    description 'Clone(checkout) checkoutLatest PSSM_PCC_Account'
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Account.git' , 'build/PSSM_PCC_Account' 
+}
+
+task checkoutLatestPSSM_PCC_Environment(type: Exec) {
+    description 'Clone(checkout) checkoutLatest PSSM_PCC_Environment'
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Environment.git' , 'build/PSSM_PCC_Environment' 
+}
+
+task checkoutLatestSDK_PCC_PCIS_Service(type: Exec) {
+    description 'Clone(checkout) checkoutLatest SDK_PCC_PCIS_Service'
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/SDK_PCC_PCIS_Service.git' , 'build/SDK_PCC_PCIS_Service' 
+}
+
+task checkoutLatestSDK_PCC_PCIS_Client(type: Exec) {
+    description 'Clone(checkout) checkoutLatest SDK_PCC_PCIS_Client'
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/SDK_PCC_PCIS_Client.git' , 'build/SDK_PCC_PCIS_Client' 
+}
+
+task checkoutLatestPCC_Cockpit(type: Exec) {
+    description 'Clone(checkout) checkoutLatest PCC_Cockpit'
+    commandLine 'git', 'clone', 'git@github.com:planonsoftware/PCC_Cockpit.git' , 'build/PCC_Cockpit' 
+}
+
+task checkoutLatestPSS_BuildScripts(type: Exec) {
+    description 'CVS (checkout) checkoutLatest PSS_BuildScripts (non standard....FIXME)'
+    workingDir 'build'
+    commandLine 'cvs', 'checkout', '-d' , 'PSS_BuildScripts' , 'PSS_BuildScripts'
+}
+
+task updateVersion(dependsOn: ['updateMainVersion','updateVersionPSSM_PCC_Account','updateVersionPSSM_PCC_Environment','updateVersionPSSM_PCC_Shared','updateVersionPssFramework']){
+}
+
+task updateVersionPssFramework(dependsOn: ['updatePssFrameworkVersionPSSM_PCC_Environment','updatePssFrameworkVersionPSSM_PCC_Shared','updatePssFrameworkVersionPSSM_PCC_Account']) {
+}
+
+task updateMainVersion(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version number in PSSM_PCC_Shared for cloudZip to version : '+ cloudZipVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Shared/eclipse.project.properties')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/publish\.zip\.version=(\d+).(\d+).(\d+)/,"publish.zip.version=${cloudZipVersion}")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting eclipse.project.properties in PSSM_PCC_Shared for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/eclipse.project.properties' , '-m' , commitMessage
+}
+
+task updateVersionPSSM_PCC_Account(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version number in PSSM_PCC_Account for cloudZip to version : '+cloudZipVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Account/eclipse.project.properties')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.minrel=(\d+)/,"artifact.version.minrel=${minrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting eclipse.project.properties in PSSM_PCC_Account for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Account/eclipse.project.properties' , '-m' , commitMessage
+}
+
+task updateVersionPSSM_PCC_Environment(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version number in PSSM_PCC_Environment for cloudZip to version : '+cloudZipVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Environment/eclipse.project.properties')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.minrel=(\d+)/,"artifact.version.minrel=${minrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting eclipse.project.properties in PSSM_PCC_Environment for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Environment/eclipse.project.properties' , '-m' , commitMessage
+}
+
+task updateVersionPSSM_PCC_Shared(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version number in PSSM_PCC_Shared for cloudZip to version : '+cloudZipVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Shared/eclipse.project.properties')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.minrel=(\d+)/,"artifact.version.minrel=${minrel}")
+	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting eclipse.project.properties in PSSM_PCC_Shared for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/eclipse.project.properties' , '-m' , commitMessage
+}
+
+task updatePssFrameworkVersionPSSM_PCC_Environment(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version pss-framework number in PSSM_PCC_Environment for cloudZip to version : '+ pssFrameworkVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Environment/ivy.xml')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting ivy.xml in PSSM_PCC_Environment for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Environment/ivy.xml' , '-m' , commitMessage
+}
+
+task updatePssFrameworkVersionPSSM_PCC_Shared(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version pss-framework number in PSSM_PCC_Shared for cloudZip to version : '+ pssFrameworkVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Shared/ivy.xml')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting ivy.xml in PSSM_PCC_Shared for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/ivy.xml' , '-m' , commitMessage
+}
+
+task updatePssFrameworkVersionPSSM_PCC_Account(type:Exec,dependsOn: 'checkoutLatest') {
+    description 'Updating version pss-framework number in PSSM_PCC_Account for cloudZip to version : '+ pssFrameworkVersion
+    doFirst {
+	    def versionFile = new File('build/PSSM_PCC_Account/ivy.xml')
+	    String versionFileContents = versionFile.getText('UTF-8')
+	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
+	    versionFile.write(versionFileContents)
+    }
+    description 'Commiting ivy.xml in PSSM_PCC_Account for cloudZip'
+    commandLine 'echo', 'Placeholder Commit' 
+    //commandLine 'git', 'commit', 'build/PSSM_PCC_Account/ivy.xml' , '-m' , commitMessage
+}
+
+task pushNewVersionToOriginPSSM_PCC_Shared(type:Exec,dependsOn: 'updateVersion') {
+    description 'Pushing PSSM_PCC_Shared GitHub'
+    workingDir 'build/PSSM_PCC_Shared'
+    commandLine 'echo', 'Placeholder Push' 
+    //commandLine 'git', 'push', 'origin', 'master'
+}
+
+task pushNewVersionToOriginPSSM_PCC_Account(type:Exec,dependsOn: 'updateVersion') {
+    description 'Pushing PSSM_PCC_Account GitHub'
+    workingDir 'build/PSSM_PCC_Account'
+    commandLine 'echo', 'Placeholder Push' 
+    //commandLine 'git', 'push', 'origin', 'master'
+}
+
+task pushNewVersionToOriginPSSM_PCC_Environment(type:Exec,dependsOn: 'updateVersion') {
+    description 'Pushing PSSM_PCC_Environment GitHub'
+    workingDir 'build/PSSM_PCC_Environment'
+    commandLine 'echo', 'Placeholder Push' 
+    //commandLine 'git', 'push', 'origin', 'master'
+}
+
+task createBranches(dependsOn: ['pushBranchePSSM_PCC_Shared','pushBranchePSSM_PCC_Account','pushBranchePSSM_PCC_Environment','pushBrancheSDK_PCC_PCIS_Service','pushBrancheSDK_PCC_PCIS_Client','pushBranchePCC_Cockpit']) {
+}
+
+task createBranchePSSM_PCC_Shared(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Shared') { 
+    description 'Branch local PSSM_PCC_Shared' 
+    workingDir 'build/PSSM_PCC_Shared'
+    commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBranchePSSM_PCC_Shared(type: Exec,dependsOn: 'createBranchePSSM_PCC_Shared') { 
+    description 'Push Branch remote PSSM_PCC_Shared' 
+    workingDir 'build/PSSM_PCC_Shared' 
+    commandLine 'echo', 'push placeholder PSSM_PCC_Shared'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task createBranchePSSM_PCC_Account(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Account') { 
+    description 'Branch local PSSM_PCC_Account' 
+    workingDir 'build/PSSM_PCC_Account'
+    commandLine 'echo', 'push placeholder PSSM_PCC_Account'
+    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBranchePSSM_PCC_Account(type: Exec,dependsOn: 'createBranchePSSM_PCC_Account') { 
+    description 'Push Branch remote PSSM_PCC_Account' 
+    workingDir 'build/PSSM_PCC_Account' 
+    commandLine 'echo', 'push placeholder PSSM_PCC_Account'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task createBranchePSSM_PCC_Environment(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Environment') { 
+    description 'Branch local PSSM_PCC_Environment' 
+    workingDir 'build/PSSM_PCC_Environment'
+    commandLine 'echo', 'push placeholder PSSM_PCC_Environment'
+    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBranchePSSM_PCC_Environment(type: Exec,dependsOn: 'createBranchePSSM_PCC_Environment') { 
+    description 'Push Branch remote PSSM_PCC_Environment' 
+    workingDir 'build/PSSM_PCC_Environment' 
+    commandLine 'echo', 'push placeholder PSSM_PCC_Environment'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task createBrancheSDK_PCC_PCIS_Service(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Branch local SDK_PCC_PCIS_Service' 
+    workingDir 'build/SDK_PCC_PCIS_Service'
+    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Service'
+    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBrancheSDK_PCC_PCIS_Service(type: Exec,dependsOn: 'createBrancheSDK_PCC_PCIS_Service') { 
+    description 'Push Branch remote SDK_PCC_PCIS_Service' 
+    workingDir 'build/SDK_PCC_PCIS_Service' 
+    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Service'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task createBrancheSDK_PCC_PCIS_Client(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Branch local SDK_PCC_PCIS_Client' 
+    workingDir 'build/SDK_PCC_PCIS_Client'
+    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Client'
+    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBrancheSDK_PCC_PCIS_Client(type: Exec,dependsOn: 'createBrancheSDK_PCC_PCIS_Client') { 
+    description 'Push Branch remote SDK_PCC_PCIS_Client' 
+    workingDir 'build/SDK_PCC_PCIS_Client' 
+    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Client'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task createBranchePCC_Cockpit(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Branch local PCC_Cockpit' 
+    workingDir 'build/PCC_Cockpit'
+    commandLine 'echo', 'push placeholder PCC_Cockpit'
+    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+}
+
+task pushBranchePCC_Cockpit(type: Exec,dependsOn: 'createBranchePCC_Cockpit') { 
+    description 'Push Branch remote PCC_Cockpit' 
+    workingDir 'build/PCC_Cockpit' 
+    commandLine 'echo', 'push placeholder PCC_Cockpit'
+    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
+}
+
+task buildCloudZip(dependsOn: [ 'createBranches'] ) {
+    description 'placeholder for end goal'
+}
+
+
+
+// ------------------------ setup test -----------------------------------
+task buildDockerCloudImage(type: Exec) {
+    workingDir 'dockerFiles/cloudimage/'
+    commandLine 'docker', 'build', '-t', 'planon_CouldImage:0.1', '.'
+}
+
+task runDockerCloudImage(type: Exec, dependsOn: 'buildDockerCloudImage') {
+    commandLine 'docker', 'run',  '-p', '18080:8080', '--name', 'cloudimage01',  '-i', '-t', 'planon_CouldImage:0.1'
+}
+
+task stopDockerCloudImage(type: Exec) {
+    commandLine 'docker', 'stop', 'cloudimage01'
+}
+
+task removeDockerCloudImage(type: Exec,dependsOn: 'stopJenkins') {
+    commandLine 'docker', 'rm', 'cloudimage01'
+}
+
+
+task checkInternet() {
+    doLast {
+        if (checkInternetConnection()) {
+            System.out.println("true");
+        } else {
+            System.out.println("false");
+            //throw new GradleException('no internet connection might be proxy settings')
+        }
+        if (checkInternetConnectionProxy()) {
+            System.out.println("true proxy");
+        } else {
+            System.out.println("false proxy");
+            throw new GradleException('proxy no internet connection might be proxy settings')
+        }
+    }
+}
+
+def checkInternetConnection() {
+    int timeout = 1500;
+    try {
+        return InetAddress.getByName("www.nl.cx").isReachable(timeout)
+    } catch (Exception e) {
+        System.out.println("Unknown Host: " + e);
+    }
+    return false;
+}
+
+def checkInternetConnectionProxy() {
+    int timeout = 1500;
+    try {
+        System.setProperty("https.proxyHost", "10.12.9.101");
+        System.setProperty("https.proxyPort", "8080");
+        return InetAddress.getByName("www.nl.cx").isReachable(timeout)
+    } catch (Exception e) {
+        System.out.println("Unknown Host: " + e);
+    }
+    return false;
+}
+
+
