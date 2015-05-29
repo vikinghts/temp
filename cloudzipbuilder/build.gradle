@@ -1,53 +1,88 @@
 apply plugin:'base'
 
+// override to print the commands being executed
+allprojects {
+  tasks.withType(Exec) {
+    doFirst {
+      println "command that is run:" + commandLine
+    }
+  }
+}
+
 ext {
+	cvsRevision = 'B_7'
     cloudZipVersion = "15.4.0"	
     majrel = '7'
     minrel = '4' 
     micrel = '0' 
     pssFrameworkVersion = "7.0.4"
     commitMessage = 'Making new release of cloudZip for version $cloudZipVersion pssFrameworkVersion ${propertiesFrameworkVersion} and ${majrel}.${minrel}.${micrel}'
+    antLocation = 'build/ant/bin/ant.bat'
 }
 
 defaultTasks 'buildCloudZip'
 
-task checkoutLatest(dependsOn: ['checkoutLatestPSSM_PCC_Shared','checkoutLatestPSSM_PCC_Account','checkoutLatestPSSM_PCC_Environment','checkoutLatestSDK_PCC_PCIS_Service','checkoutLatestSDK_PCC_PCIS_Client','checkoutLatestPCC_Cockpit','checkoutLatestPSS_BuildScripts']) {
+task createBuildDir(){
+	buildDir.mkdir()
 }
 
-task checkoutLatestPSSM_PCC_Shared(type: Exec) { 
-    description 'Clone(checkout) checkoutLatest PSSM_PCC_Shared' 
+task cvsCheckoutLatestPSSM_PCC_SHARED(type: Exec,dependsOn: 'createBuildDir') {
+	doFirst{
+		logger.quiet('cvs checkout PSSM_PCC_SHARED might fail. Check username password right version of cvs etc')
+	}
+    description 'CVS (checkout) checkoutLatest PSSM_PCC_SHARED (non standard....FIXME)'
+    workingDir 'build'
+    commandLine 'cvs', 'checkout', '-r' , cvsRevision , '-d' , 'PSSM_PCC_Shared' , 'PSSM_PCC_Shared'
+    environment ('CVSROOT',':pserver:kbjans:kbjans@nl-devtux02.planon-fm.com:/data/repository/cvs-repo')
+}
+
+task bootStrapEnviroment(type:Exec, dependsOn: 'cvsCheckoutLatestPSSM_PCC_SHARED') {
+	description 'BootStrapEnviroment in PSSM_PCC_Shared' 
+    workingDir 'build/PSSM_PCC_Shared'  			 
+    commandLine 'cmd' ,'/c', 'SFProjectBootstrap.bat'
+}
+
+task prepareWorkSpace(type: Exec,dependsOn: 'bootStrapEnviroment') {
+	description 'ant prepareWorkspace' 
+    workingDir 'build/PSSM_PCC_Shared'
+    commandLine "${projectDir}/${antLocation}" , 'prepareWorkspace'
+}
+
+task removeTempBootStrapCheckout(type: Delete, dependsOn: 'prepareWorkSpace') {
+	delete 'build/PSSM_PCC_Shared'
+}
+
+task checkoutLatest(dependsOn: ['checkoutLatestPSSM_PCC_Shared','checkoutLatestPSSM_PCC_Account','checkoutLatestPSSM_PCC_Environment','checkoutLatestSDK_PCC_PCIS_Service','checkoutLatestSDK_PCC_PCIS_Client','checkoutLatestPCC_Cockpit','cvsCheckoutLatestPSSM_PCC_SHARED']) {
+}
+
+task checkoutLatestPSSM_PCC_Shared(type: Exec,dependsOn: 'removeTempBootStrapCheckout') { 
+    description 'Clone(checkout) checkoutLatest PSSM_PCC_Shared'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Shared.git' , 'build/PSSM_PCC_Shared' 
 }
 
-task checkoutLatestPSSM_PCC_Account(type: Exec) {
+task checkoutLatestPSSM_PCC_Account(type: Exec,dependsOn: 'removeTempBootStrapCheckout') {
     description 'Clone(checkout) checkoutLatest PSSM_PCC_Account'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Account.git' , 'build/PSSM_PCC_Account' 
 }
 
-task checkoutLatestPSSM_PCC_Environment(type: Exec) {
+task checkoutLatestPSSM_PCC_Environment(type: Exec,dependsOn: 'removeTempBootStrapCheckout') {
     description 'Clone(checkout) checkoutLatest PSSM_PCC_Environment'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/PSSM_PCC_Environment.git' , 'build/PSSM_PCC_Environment' 
 }
 
-task checkoutLatestSDK_PCC_PCIS_Service(type: Exec) {
+task checkoutLatestSDK_PCC_PCIS_Service(type: Exec,dependsOn: 'removeTempBootStrapCheckout') {
     description 'Clone(checkout) checkoutLatest SDK_PCC_PCIS_Service'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/SDK_PCC_PCIS_Service.git' , 'build/SDK_PCC_PCIS_Service' 
 }
 
-task checkoutLatestSDK_PCC_PCIS_Client(type: Exec) {
+task checkoutLatestSDK_PCC_PCIS_Client(type: Exec,dependsOn: 'removeTempBootStrapCheckout') {
     description 'Clone(checkout) checkoutLatest SDK_PCC_PCIS_Client'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/SDK_PCC_PCIS_Client.git' , 'build/SDK_PCC_PCIS_Client' 
 }
 
-task checkoutLatestPCC_Cockpit(type: Exec) {
+task checkoutLatestPCC_Cockpit(type: Exec,dependsOn: 'removeTempBootStrapCheckout') {
     description 'Clone(checkout) checkoutLatest PCC_Cockpit'
     commandLine 'git', 'clone', 'git@github.com:planonsoftware/PCC_Cockpit.git' , 'build/PCC_Cockpit' 
-}
-
-task checkoutLatestPSS_BuildScripts(type: Exec) {
-    description 'CVS (checkout) checkoutLatest PSS_BuildScripts (non standard....FIXME)'
-    workingDir 'build'
-    commandLine 'cvs', 'checkout', '-d' , 'PSS_BuildScripts' , 'PSS_BuildScripts'
 }
 
 task updateVersion(dependsOn: ['updateMainVersion','updateVersionPSSM_PCC_Account','updateVersionPSSM_PCC_Environment','updateVersionPSSM_PCC_Shared','updateVersionPssFramework']){
@@ -56,22 +91,21 @@ task updateVersion(dependsOn: ['updateMainVersion','updateVersionPSSM_PCC_Accoun
 task updateVersionPssFramework(dependsOn: ['updatePssFrameworkVersionPSSM_PCC_Environment','updatePssFrameworkVersionPSSM_PCC_Shared','updatePssFrameworkVersionPSSM_PCC_Account']) {
 }
 
-task updateMainVersion(type:Exec,dependsOn: 'checkoutLatest') {
+task updateMainVersion(dependsOn: 'checkoutLatest') {
     description 'Updating version number in PSSM_PCC_Shared for cloudZip to version : '+ cloudZipVersion
     doFirst {
+    	logger.quiet('Updating version number in PSSM_PCC_Account for cloudZip to version : '+cloudZipVersion)
 	    def versionFile = new File('build/PSSM_PCC_Shared/eclipse.project.properties')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/publish\.zip\.version=(\d+).(\d+).(\d+)/,"publish.zip.version=${cloudZipVersion}")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting eclipse.project.properties in PSSM_PCC_Shared for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/eclipse.project.properties' , '-m' , commitMessage
 }
 
-task updateVersionPSSM_PCC_Account(type:Exec,dependsOn: 'checkoutLatest') {
-    description 'Updating version number in PSSM_PCC_Account for cloudZip to version : '+cloudZipVersion
+task updateVersionPSSM_PCC_Account(dependsOn: 'checkoutLatest') {
+    description 'Updating Maj min mic version number in PSSM_PCC_Account for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel 
     doFirst {
+    	logger.quiet('Updating Maj min mic version number in PSSM_PCC_Account for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel)
 	    def versionFile = new File('build/PSSM_PCC_Account/eclipse.project.properties')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
@@ -79,14 +113,12 @@ task updateVersionPSSM_PCC_Account(type:Exec,dependsOn: 'checkoutLatest') {
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting eclipse.project.properties in PSSM_PCC_Account for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Account/eclipse.project.properties' , '-m' , commitMessage
 }
 
-task updateVersionPSSM_PCC_Environment(type:Exec,dependsOn: 'checkoutLatest') {
-    description 'Updating version number in PSSM_PCC_Environment for cloudZip to version : '+cloudZipVersion
+task updateVersionPSSM_PCC_Environment(dependsOn: 'checkoutLatest') {
+	description 'Updating Maj min mic version number in PSSM_PCC_Environment for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel
     doFirst {
+    	logger.quiet('Updating Maj min mic version number in PSSM_PCC_Environment for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel)
 	    def versionFile = new File('build/PSSM_PCC_Environment/eclipse.project.properties')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
@@ -94,14 +126,12 @@ task updateVersionPSSM_PCC_Environment(type:Exec,dependsOn: 'checkoutLatest') {
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting eclipse.project.properties in PSSM_PCC_Environment for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Environment/eclipse.project.properties' , '-m' , commitMessage
 }
 
-task updateVersionPSSM_PCC_Shared(type:Exec,dependsOn: 'checkoutLatest') {
-    description 'Updating version number in PSSM_PCC_Shared for cloudZip to version : '+cloudZipVersion
+task updateVersionPSSM_PCC_Shared(dependsOn: 'checkoutLatest') {
+	description 'Updating Maj min mic version number in PSSM_PCC_Shared for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel
     doFirst {
+    	logger.quiet('Updating Maj min mic version number in PSSM_PCC_Shared for cloudZip to version : ' + majrel + '.' + minrel + '.' + micrel)
 	    def versionFile = new File('build/PSSM_PCC_Shared/eclipse.project.properties')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.majrel=(\d+)/,"artifact.version.majrel=${majrel}")
@@ -109,160 +139,218 @@ task updateVersionPSSM_PCC_Shared(type:Exec,dependsOn: 'checkoutLatest') {
 	    versionFileContents = versionFileContents.replaceAll(/artifact\.version\.micrel=(\d+)/,"artifact.version.micrel=${micrel}")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting eclipse.project.properties in PSSM_PCC_Shared for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/eclipse.project.properties' , '-m' , commitMessage
 }
 
-task updatePssFrameworkVersionPSSM_PCC_Environment(type:Exec,dependsOn: 'checkoutLatest') {
+task updatePssFrameworkVersionPSSM_PCC_Environment(dependsOn: 'checkoutLatest') {
     description 'Updating version pss-framework number in PSSM_PCC_Environment for cloudZip to version : '+ pssFrameworkVersion
     doFirst {
+    	logger.quiet('Updating version pss-framework number in PSSM_PCC_Environment for cloudZip to version : '+ pssFrameworkVersion)
 	    def versionFile = new File('build/PSSM_PCC_Environment/ivy.xml')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting ivy.xml in PSSM_PCC_Environment for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Environment/ivy.xml' , '-m' , commitMessage
 }
 
-task updatePssFrameworkVersionPSSM_PCC_Shared(type:Exec,dependsOn: 'checkoutLatest') {
+task updatePssFrameworkVersionPSSM_PCC_Shared(dependsOn: 'checkoutLatest') {
     description 'Updating version pss-framework number in PSSM_PCC_Shared for cloudZip to version : '+ pssFrameworkVersion
     doFirst {
+    	logger.quiet('Updating version pss-framework number in PSSM_PCC_Shared for cloudZip to version : '+ pssFrameworkVersion)
 	    def versionFile = new File('build/PSSM_PCC_Shared/ivy.xml')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting ivy.xml in PSSM_PCC_Shared for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Shared/ivy.xml' , '-m' , commitMessage
 }
 
-task updatePssFrameworkVersionPSSM_PCC_Account(type:Exec,dependsOn: 'checkoutLatest') {
+task updatePssFrameworkVersionPSSM_PCC_Account(dependsOn: 'checkoutLatest') {
     description 'Updating version pss-framework number in PSSM_PCC_Account for cloudZip to version : '+ pssFrameworkVersion
     doFirst {
+    	logger.quiet('Updating version pss-framework number in PSSM_PCC_Account for cloudZip to version : '+ pssFrameworkVersion)
 	    def versionFile = new File('build/PSSM_PCC_Account/ivy.xml')
 	    String versionFileContents = versionFile.getText('UTF-8')
 	    versionFileContents = versionFileContents.replaceAll(/pss\.framework\" rev=\"(\d+).(\d+).(\d+)\"/,"pss.framework\" rev=\"${pssFrameworkVersion}\"")
 	    versionFile.write(versionFileContents)
     }
-    description 'Commiting ivy.xml in PSSM_PCC_Account for cloudZip'
-    commandLine 'echo', 'Placeholder Commit' 
-    //commandLine 'git', 'commit', 'build/PSSM_PCC_Account/ivy.xml' , '-m' , commitMessage
 }
+
+
+task eclipsify(dependsOn: ['eclipsifyPSSM_PCC_Shared','eclipsifyPSSM_PCC_Account','eclipsifyPSSM_PCC_Environment','eclipsifySDK_PCC_PCIS_Service','eclipsifySDK_PCC_PCIS_Client','eclipsifyCockpitClient','eclipsifySharedResourcesCockpit']){}
+
+task fixPropertiesPSSM_PCC_Shared(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/PSSM_PCC_Shared')
+    into('build/PSSM_PCC_Shared')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifyPSSM_PCC_Shared(type: Exec, dependsOn: 'fixPropertiesPSSM_PCC_Shared') {
+	description 'ant eclipsify local PSSM_PCC_Shared' 
+    workingDir 'build/PSSM_PCC_Shared'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesPSSM_PCC_Account(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/PSSM_PCC_Account')
+    into('build/PSSM_PCC_Account')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifyPSSM_PCC_Account(type: Exec, dependsOn: 'fixPropertiesPSSM_PCC_Account') {
+	description 'ant eclipsify local PSSM_PCC_Account' 
+    workingDir 'build/PSSM_PCC_Account'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesPSSM_PCC_Environment(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/PSSM_PCC_Environment')
+    into('build/PSSM_PCC_Environment')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifyPSSM_PCC_Environment(type: Exec, dependsOn: 'fixPropertiesPSSM_PCC_Environment') {
+	description 'ant eclipsify local PSSM_PCC_Environment' 
+    workingDir 'build/PSSM_PCC_Environment'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesSDK_PCC_PCIS_Service(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/SDK_PCC_PCIS_Service')
+    into('build/SDK_PCC_PCIS_Service')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifySDK_PCC_PCIS_Service(type: Exec, dependsOn: 'fixPropertiesSDK_PCC_PCIS_Service') {
+	description 'ant eclipsify local SDK_PCC_PCIS_Service' 
+    workingDir 'build/SDK_PCC_PCIS_Service'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesSDK_PCC_PCIS_Client(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/SDK_PCC_PCIS_Client')
+    into('build/SDK_PCC_PCIS_Client')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifySDK_PCC_PCIS_Client(type: Exec, dependsOn: 'fixPropertiesSDK_PCC_PCIS_Client') {
+	description 'ant eclipsify local SDK_PCC_PCIS_Client' 
+    workingDir 'build/SDK_PCC_PCIS_Client'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesCockpitClient(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/PCC_Cockpit/CockpitClient')
+    into('build/PCC_Cockpit/CockpitClient')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifyCockpitClient(type: Exec, dependsOn: 'fixPropertiesCockpitClient') {
+	description 'ant eclipsify local CockpitClient' 
+    workingDir 'build/PCC_Cockpit/CockpitClient'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+task fixPropertiesSharedResourcesCockpit(type: Copy,dependsOn: 'updateVersion') {							
+    from('build/PCC_Cockpit/SharedResourcesCockpit')
+    into('build/PCC_Cockpit/SharedResourcesCockpit')
+    include 'eclipse.project.properties'
+    rename ('eclipse.project.properties','project.properties')
+}
+
+task eclipsifySharedResourcesCockpit(type: Exec, dependsOn: 'fixPropertiesSharedResourcesCockpit') {
+	description 'ant eclipsify local SharedResourcesCockpit' 
+    workingDir 'build/PCC_Cockpit/SharedResourcesCockpit'
+    commandLine "${projectDir}/${antLocation}" , 'eclipse'
+}
+
+
+
+task createTags(dependsOn: ['createTagPSSM_PCC_Shared','createTagPSSM_PCC_Account','createTagPSSM_PCC_Environment','createTagSDK_PCC_PCIS_Service','createTagSDK_PCC_PCIS_Client','createTagPCC_Cockpit']) {
+}
+
+task createTagPSSM_PCC_Shared(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local PSSM_PCC_Shared' 
+    workingDir 'build/PSSM_PCC_Shared'
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion 
+}
+
+task createTagPSSM_PCC_Account(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local PSSM_PCC_Account' 
+    workingDir 'build/PSSM_PCC_Account'
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
+}
+
+task createTagPSSM_PCC_Environment(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local PSSM_PCC_Environment' 
+    workingDir 'build/PSSM_PCC_Environment'
+	commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
+}
+
+task createTagSDK_PCC_PCIS_Service(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local SDK_PCC_PCIS_Service' 
+    workingDir 'build/SDK_PCC_PCIS_Service'
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion 
+}
+
+task createTagSDK_PCC_PCIS_Client(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local SDK_PCC_PCIS_Client' 
+    workingDir 'build/SDK_PCC_PCIS_Client'
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
+}
+
+task createTagPCC_Cockpit(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Tag local PCC_Cockpit' 
+    workingDir 'build/PCC_Cockpit'
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
+}
+
+task buildCloudZip(dependsOn: [ 'eclipsify'] ) {
+    description 'placeholder for end goal'
+}
+
 
 task pushNewVersionToOriginPSSM_PCC_Shared(type:Exec,dependsOn: 'updateVersion') {
     description 'Pushing PSSM_PCC_Shared GitHub'
     workingDir 'build/PSSM_PCC_Shared'
-    commandLine 'echo', 'Placeholder Push' 
-    //commandLine 'git', 'push', 'origin', 'master'
+    commandLine 'git', 'push', 'origin', 'master'
 }
 
 task pushNewVersionToOriginPSSM_PCC_Account(type:Exec,dependsOn: 'updateVersion') {
     description 'Pushing PSSM_PCC_Account GitHub'
     workingDir 'build/PSSM_PCC_Account'
-    commandLine 'echo', 'Placeholder Push' 
-    //commandLine 'git', 'push', 'origin', 'master'
+    commandLine 'git', 'push', 'origin', 'master'
 }
 
 task pushNewVersionToOriginPSSM_PCC_Environment(type:Exec,dependsOn: 'updateVersion') {
     description 'Pushing PSSM_PCC_Environment GitHub'
     workingDir 'build/PSSM_PCC_Environment'
-    commandLine 'echo', 'Placeholder Push' 
+    commandLine 'dir' 
     //commandLine 'git', 'push', 'origin', 'master'
 }
 
-task createBranches(dependsOn: ['pushBranchePSSM_PCC_Shared','pushBranchePSSM_PCC_Account','pushBranchePSSM_PCC_Environment','pushBrancheSDK_PCC_PCIS_Service','pushBrancheSDK_PCC_PCIS_Client','pushBranchePCC_Cockpit']) {
-}
-
-task createBranchePSSM_PCC_Shared(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Shared') { 
-    description 'Branch local PSSM_PCC_Shared' 
-    workingDir 'build/PSSM_PCC_Shared'
-    commandLine 'git', 'checkout', '-b' , cloudZipVersion 
-}
-
-task pushBranchePSSM_PCC_Shared(type: Exec,dependsOn: 'createBranchePSSM_PCC_Shared') { 
-    description 'Push Branch remote PSSM_PCC_Shared' 
-    workingDir 'build/PSSM_PCC_Shared' 
-    commandLine 'echo', 'push placeholder PSSM_PCC_Shared'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task createBranchePSSM_PCC_Account(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Account') { 
-    description 'Branch local PSSM_PCC_Account' 
-    workingDir 'build/PSSM_PCC_Account'
-    commandLine 'echo', 'push placeholder PSSM_PCC_Account'
-    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
-}
-
-task pushBranchePSSM_PCC_Account(type: Exec,dependsOn: 'createBranchePSSM_PCC_Account') { 
-    description 'Push Branch remote PSSM_PCC_Account' 
-    workingDir 'build/PSSM_PCC_Account' 
-    commandLine 'echo', 'push placeholder PSSM_PCC_Account'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task createBranchePSSM_PCC_Environment(type: Exec, dependsOn: 'pushNewVersionToOriginPSSM_PCC_Environment') { 
-    description 'Branch local PSSM_PCC_Environment' 
-    workingDir 'build/PSSM_PCC_Environment'
-    commandLine 'echo', 'push placeholder PSSM_PCC_Environment'
-    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
-}
-
-task pushBranchePSSM_PCC_Environment(type: Exec,dependsOn: 'createBranchePSSM_PCC_Environment') { 
-    description 'Push Branch remote PSSM_PCC_Environment' 
-    workingDir 'build/PSSM_PCC_Environment' 
-    commandLine 'echo', 'push placeholder PSSM_PCC_Environment'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task createBrancheSDK_PCC_PCIS_Service(type: Exec, dependsOn: 'updateVersion') { 
-    description 'Branch local SDK_PCC_PCIS_Service' 
+task pushNewVersionToOriginSDK_PCC_PCIS_Service(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Pushing SDK_PCC_PCIS_Service' 
     workingDir 'build/SDK_PCC_PCIS_Service'
-    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Service'
-    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion 
 }
 
-task pushBrancheSDK_PCC_PCIS_Service(type: Exec,dependsOn: 'createBrancheSDK_PCC_PCIS_Service') { 
-    description 'Push Branch remote SDK_PCC_PCIS_Service' 
-    workingDir 'build/SDK_PCC_PCIS_Service' 
-    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Service'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task createBrancheSDK_PCC_PCIS_Client(type: Exec, dependsOn: 'updateVersion') { 
-    description 'Branch local SDK_PCC_PCIS_Client' 
+task pushNewVersionToOriginSDK_PCC_PCIS_Client(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Pushing SDK_PCC_PCIS_Client' 
     workingDir 'build/SDK_PCC_PCIS_Client'
-    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Client'
-    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
 }
 
-task pushBrancheSDK_PCC_PCIS_Client(type: Exec,dependsOn: 'createBrancheSDK_PCC_PCIS_Client') { 
-    description 'Push Branch remote SDK_PCC_PCIS_Client' 
-    workingDir 'build/SDK_PCC_PCIS_Client' 
-    commandLine 'echo', 'push placeholder SDK_PCC_PCIS_Client'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task createBranchePCC_Cockpit(type: Exec, dependsOn: 'updateVersion') { 
-    description 'Branch local PCC_Cockpit' 
+task pushNewVersionToOriginPCC_Cockpit(type: Exec, dependsOn: 'updateVersion') { 
+    description 'Pushing PCC_Cockpit' 
     workingDir 'build/PCC_Cockpit'
-    commandLine 'echo', 'push placeholder PCC_Cockpit'
-    //commandLine 'git', 'checkout', '-b' , cloudZipVersion 
+    commandLine 'git', 'tag', '-a' , cloudZipVersion ,'-m' , 'Release of cloudZipVersion' + cloudZipVersion
 }
 
-task pushBranchePCC_Cockpit(type: Exec,dependsOn: 'createBranchePCC_Cockpit') { 
-    description 'Push Branch remote PCC_Cockpit' 
-    workingDir 'build/PCC_Cockpit' 
-    commandLine 'echo', 'push placeholder PCC_Cockpit'
-    //commandLine 'git', 'push', 'origin' , cloudZipVersion 
-}
-
-task buildCloudZip(dependsOn: [ 'createBranches'] ) {
-    description 'placeholder for end goal'
-}
 
 
 
